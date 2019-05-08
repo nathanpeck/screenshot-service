@@ -6,7 +6,7 @@ const S3 = new AWS.S3();
 
 // Configure the SQS queue to watch for jobs.
 var workQueue = new Squiss({
-  queueName: process.env.QUEUE_NAME,
+  queueUrl: process.env.QUEUE_URL,
   bodyFormat: 'json',
   maxInFlight: 3
 });

@@ -1,6 +1,6 @@
 const cdk = require('@aws-cdk/cdk');
-const ecs = require('@aws-cdk/aws-ecs');
 const ec2 = require('@aws-cdk/aws-ec2');
+const ecs = require('@aws-cdk/aws-ecs');
 const s3 = require('@aws-cdk/aws-s3');
 const sqs = require('@aws-cdk/aws-sqs');
 const dynamodb = require('@aws-cdk/aws-dynamodb');
@@ -9,25 +9,27 @@ class BaseResources extends cdk.Stack {
   constructor(parent, id, props) {
     super(parent, id, props);
 
-    // Network to run everything in
+    // Create a network for the application to run in
     this.vpc = new ec2.VpcNetwork(this, 'vpc', {
       maxAZs: 2,
       natGateways: 1
     });
 
-    // Cluster all the containers will run in
-    this.cluster = new ecs.Cluster(this, 'cluster', { vpc: this.vpc });
+    // Create an ECS cluster
+    this.cluster = new ecs.Cluster(this, 'cluster', {
+      vpc: this.vpc
+    });
 
-    // S3 bucket to hold resized image
+    // Create S3 bucket
     this.screenshotBucket = new s3.Bucket(this, 'screenshot-bucket', {
       publicReadAccess: true
     });
 
-    // SQS queue to tell worker to resize an image
+    // Create queue
     this.screenshotQueue = new sqs.Queue(this, 'screenshot-queue');
 
-    // DynamoDB table to keep track of websites we took screenshots of
-    this.jobsTable = new dynamodb.Table(this, 'jobs', {
+    // Create DynamoDB table
+    this.screenshotTable = new dynamodb.Table(this, 'screenshots', {
       partitionKey: { name: 'id', type: dynamodb.AttributeType.String },
       billingMode: dynamodb.BillingMode.PayPerRequest
     });
@@ -38,7 +40,7 @@ class API extends cdk.Stack {
   constructor(parent, id, props) {
     super(parent, id, props);
 
-    // Deploy an API component
+    // Create an API service
     this.api = new ecs.LoadBalancedFargateService(this, 'api', {
       cluster: props.cluster,
       image: ecs.ContainerImage.fromAsset(this, 'api-image', {
@@ -49,14 +51,13 @@ class API extends cdk.Stack {
       memory: '512',
       environment: {
         QUEUE_URL: props.screenshotQueue.queueUrl,
-        TABLE: props.jobsTable.tableName
+        TABLE: props.screenshotTable.tableName
       },
       createLogs: true
     });
 
-    // Write access to the SQS queue, write access to table
     props.screenshotQueue.grantSendMessages(this.api.service.taskDefinition.taskRole);
-    props.jobsTable.grantReadWriteData(this.api.service.taskDefinition.taskRole);
+    props.screenshotTable.grantReadWriteData(this.api.service.taskDefinition.taskRole);
   }
 }
 
@@ -64,7 +65,7 @@ class Worker extends cdk.Stack {
   constructor(parent, id, props) {
     super(parent, id, props);
 
-    // Deploy a worker component
+    // Create a worker service
     this.workerDefinition = new ecs.FargateTaskDefinition(this, 'worker-definition', {
       cpu: '2048',
       memoryMiB: '4096'
@@ -74,11 +75,11 @@ class Worker extends cdk.Stack {
       image: ecs.ContainerImage.fromAsset(this, 'worker-image', {
         directory: './worker'
       }),
-      memoryLimitMiB: 4096,
       cpu: 2048,
+      memoryLimitMiB: 4096,
       environment: {
-        QUEUE_NAME: props.screenshotQueue.queueName,
-        TABLE: props.jobsTable.tableName,
+        QUEUE_URL: props.screenshotQueue.queueUrl,
+        TABLE: props.screenshotTable.tableName,
         BUCKET: props.screenshotBucket.bucketName
       },
       logging: new ecs.AwsLogDriver(this, 'worker-logs', {
@@ -86,17 +87,14 @@ class Worker extends cdk.Stack {
       })
     });
 
-    // Launch the image as a service in Fargate
     this.worker = new ecs.FargateService(this, 'worker', {
       cluster: props.cluster,
       desiredCount: 2,
-      taskDefinition: this.workerDefinition,
+      taskDefinition: this.workerDefinition
     });
 
-    // Poll access to the queue, write access to bucket,
-    // write access to the table
     props.screenshotQueue.grantConsumeMessages(this.workerDefinition.taskRole);
-    props.jobsTable.grantReadWriteData(this.workerDefinition.taskRole);
+    props.screenshotTable.grantReadWriteData(this.workerDefinition.taskRole);
     props.screenshotBucket.grantReadWrite(this.workerDefinition.taskRole);
   }
 }
@@ -110,13 +108,13 @@ class App extends cdk.App {
     this.api = new API(this, 'api', {
       cluster: this.baseResources.cluster,
       screenshotQueue: this.baseResources.screenshotQueue,
-      jobsTable: this.baseResources.jobsTable
+      screenshotTable: this.baseResources.screenshotTable
     });
 
     this.worker = new Worker(this, 'worker', {
       cluster: this.baseResources.cluster,
       screenshotQueue: this.baseResources.screenshotQueue,
-      jobsTable: this.baseResources.jobsTable,
+      screenshotTable: this.baseResources.screenshotTable,
       screenshotBucket: this.baseResources.screenshotBucket
     });
   }
