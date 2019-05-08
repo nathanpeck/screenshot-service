@@ -1,0 +1,17 @@
+{
+  "description": "Simple fanout queue demo",
+  "devDependencies": {
+    "aws-cdk": "^0.28.0",
+    "@aws-cdk/cdk": "^0.28.0",
+    "@aws-cdk/aws-dynamodb": "^0.28.0",
+    "@aws-cdk/aws-ecs": "^0.28.0",
+    "@aws-cdk/aws-s3": "^0.28.0",
+    "@aws-cdk/aws-sqs": "^0.28.0"
+  },
+  "scripts": {
+    "diff": "cdk diff",
+    "deploy": "cdk deploy --require-approval never",
+    "synth": "cdk synth --output synth",
+    "destroy": "cdk destroy"
+  }
+}

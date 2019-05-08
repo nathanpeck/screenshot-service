@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "aws-sdk": "^2.438.0",
+    "body-parser": "^1.18.3",
+    "express": "^4.16.4",
+    "morgan": "^1.9.1",
+    "uuid": "^3.3.2"
+  }
+}
