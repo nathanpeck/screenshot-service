@@ -67,7 +67,7 @@ workQueue.on('message', async function(msg) {
       ContentType: 'image/png'
     }).promise();
 
-    uri = `https://s3.amazonaws.com/${process.env.BUCKET}/${key}`;
+    uri = `https://${process.env.BUCKET}.s3.amazonaws.com/${key}`;
     console.log(`PNG saved to ${uri}`);
   } catch (e) {
     console.error(e);
