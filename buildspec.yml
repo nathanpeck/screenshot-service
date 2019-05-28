@@ -3,7 +3,10 @@ version: 0.2
 phases:
   install:
     commands:
-      - npm install -g cdk
-  test:
+      - npm install
+  pre_build:
     commands:
-      - cdk list
+      - ./node_modules/.bin/cdk list
+  build:
+    commands:
+      - npm run-script synth
