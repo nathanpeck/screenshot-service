@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "aws-sdk": "^2.438.0",
+    "aws-sdk": "^2.814.0",
     "puppeteer": "1.14.0",
     "squiss": "^2.2.1"
   }
