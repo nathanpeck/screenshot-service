@@ -1,7 +1,7 @@
 {
   "description": "Simple fanout queue demo",
   "devDependencies": {
-    "aws-cdk": "^0.28.0",
+    "aws-cdk": "^2.43.1",
     "@aws-cdk/cdk": "^0.28.0",
     "@aws-cdk/aws-dynamodb": "^0.28.0",
     "@aws-cdk/aws-ecs": "^0.28.0",
